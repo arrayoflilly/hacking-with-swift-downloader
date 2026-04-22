@@ -67,8 +67,6 @@ def extract(html: str):
         return []
 
     out = []
-
-    # state machine
     started = False
 
     for el in container.children:
@@ -76,37 +74,66 @@ def extract(html: str):
         if not isinstance(el, Tag):
             continue
 
-        # START POINT: first lead paragraph
         classes = el.get("class") or []
+
+        # START
         if "lead" in classes:
             started = True
             continue
 
-        # STOP POINT
-        classes = el.get("class") or []
+        # STOP
         if "hws-sponsor" in classes:
             break
 
         if not started:
             continue
 
-        # CONTENT
+        # --------
+        # PARAGRAPH (FIXED)
+        # --------
         if el.name == "p":
-            txt = el.get_text(strip=False)
-            if txt:
-                out.append(("p", txt))
+            for a in el.find_all("a", href=True):
+                href = a.get("href")
+                if href:
+                    href = a.get("href")
 
+                    if isinstance(href, str):
+                        a["href"] = urljoin(BASE, href)
+            
+            inner_html = "".join(str(child) for child in el.children).strip()
+            if inner_html:
+                out.append(("p", inner_html))
+
+        # --------
+        # HEADINGS
+        # --------
         elif el.name in ["h1", "h2", "h3"]:
-            txt = el.get_text(strip=True)
+            txt = el.get_text(" ", strip=True)
             if txt:
                 out.append(("h", txt))
 
+        # --------
+        # CODE
+        # --------
         elif el.name == "pre":
             out.append(("code", el.get_text("\n", strip=False)))
 
+        # --------
+        # LIST
+        # --------
         elif el.name == "ul":
             for li in el.find_all("li", recursive=False):
-                out.append(("li", li.get_text(strip=True)))
+                li_html = "".join(str(child) for child in li.children).strip()
+                if li_html:
+                    out.append(("li", li_html))
+                    
+        # --------
+        # BLOCKQUOTE (NEW)
+        # --------
+        elif el.name == "blockquote":
+            inner_html = "".join(str(child) for child in el.children).strip()
+            if inner_html:
+                out.append(("quote", inner_html))
 
     return out
 
@@ -121,7 +148,6 @@ from pygments.formatters.html import HtmlFormatter
 
 def build_html(all_sections):
     formatter = HtmlFormatter(style="native", cssclass="code")
-
     base_css = formatter.get_style_defs(".code")
 
     custom_css = base_css + """
@@ -150,16 +176,41 @@ body {
     margin: 0;
 }
 
-/* heading page break */
+/* headings */
 h1 {
     page-break-before: always;
 }
 
-# /* FIX: inline emphasis spacing issue in PDF render */
-# em, strong, i, b {
-#     margin: 0 0.15em;
-#     display: inline-block;
-# }
+/* blockquote */
+blockquote {
+    border-left: 4px solid #ccc;
+    margin: 20px 0;
+    padding: 10px 16px;
+    color: #555;
+    background: #f9f9f9;
+    font-style: italic;
+}
+
+/* list */
+ul {
+    padding-left: 20px;
+    margin-bottom: 16px;
+}
+
+li {
+    margin-bottom: 6px;
+}
+
+a {
+    font-size: 0.9em;
+    color: #4ea1ff;
+    text-decoration: none;
+    word-break: break-word;
+}
+
+a:hover {
+    text-decoration: underline;
+}
 """
 
     html = []
@@ -174,25 +225,54 @@ h1 {
 <body>
 """)
 
+    in_list = False
+
     for section in all_sections:
         kind = section[0]
 
+        # ---- HEADINGS ----
         if kind == "h":
+            if in_list:
+                html.append("</ul>")
+                in_list = False
             html.append(f"<h1>{section[1]}</h1>")
 
+        # ---- PARAGRAPH ----
         elif kind == "p":
+            if in_list:
+                html.append("</ul>")
+                in_list = False
             html.append(f"<p>{section[1]}</p>")
 
+        # ---- BLOCKQUOTE (NEW) ----
+        elif kind == "quote":
+            if in_list:
+                html.append("</ul>")
+                in_list = False
+            html.append(f"<blockquote>{section[1]}</blockquote>")
+
+        # ---- LIST ----
         elif kind == "li":
+            if not in_list:
+                html.append("<ul>")
+                in_list = True
             html.append(f"<li>{section[1]}</li>")
 
+        # ---- CODE ----
         elif kind == "code":
+            if in_list:
+                html.append("</ul>")
+                in_list = False
+
             highlighted = highlight(
                 section[1],
                 get_lexer_by_name("swift"),
                 formatter
             )
             html.append(f"<div class='code'>{highlighted}</div>")
+
+    if in_list:
+        html.append("</ul>")
 
     html.append("</body></html>")
     return "\n".join(html)
@@ -240,7 +320,7 @@ def run():
         content = extract(html)
         
         print("CONTENT SIZE:", len(content))
-        print(content[:5])
+        # print(content[:5])
 
         slug = url.split("/")[-1]
         title = slug_to_title(slug)
