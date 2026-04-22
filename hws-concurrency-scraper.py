@@ -38,22 +38,33 @@ def get_links(html: str):
     soup = BeautifulSoup(html, "html.parser")
 
     seen = set()
-    ordered = []
+    items = []
 
-    for a in soup.find_all("a", href=True):
-        href = a.get("href")
+    for el in soup.find_all(True):
 
-        if not href:
+        # ---- CHAPTER TITLE
+        if el.name == "h2":
+            txt = el.get_text(strip=True)
+            if txt:
+                items.append(("chapter", txt))
             continue
 
-        if "/quick-start/concurrency/" in str(href):
-            full = urljoin(BASE, str(href))
+        # ---- LINK
+        if el.name == "a":
+            href = el.get("href")
 
-            if full not in seen:
-                seen.add(full)
-                ordered.append(full)
+            if not href:
+                continue
 
-    return ordered
+            if "/quick-start/concurrency/" in str(href):
+                full = urljoin(BASE, str(href))
+
+                if full not in seen:
+                    seen.add(full)
+                    title = el.get_text(strip=True)
+                    items.append(("link", title, full))
+
+    return items
 
 
 # -------------------------
@@ -187,12 +198,6 @@ body {
 }
 
 /* TOC */
-.toc {
-    /*
-    page-break-after: always;
-    */
-}
-
 .toc h2 {
     font-size: 18pt;
     margin-bottom: 16px;
@@ -295,8 +300,12 @@ a:hover {
     html.append("<div class='toc'>")
     html.append("<h2>Table of Contents</h2>")
 
-    for i, (name, anchor) in enumerate(toc_items, start=1):
-        html.append(f"<a href='#{anchor}'>{i}. {name}</a>")
+    for item in toc_items:
+        if item[0] == "chapter":
+            html.append(f"<h3 style='margin-top:16px'>{item[1]}</h3>")
+        else:
+            _, name, anchor = item
+            html.append(f"<a href='#{anchor}'>{name}</a>")
 
     html.append("</div>")
 
@@ -364,12 +373,12 @@ def html_to_pdf(html_str: str, out_path: str):
     path=out_path,
     format="A4",
     print_background=True,
-    scale=1.3,   # EZ A FONTOS
+    scale=1.5,   
     margin={
-        "top": "10mm",
-        "bottom": "10mm",
-        "left": "10mm",
-        "right": "10mm"
+        "top": "20mm",
+        "bottom": "20mm",
+        "left": "20mm",
+        "right": "20mm"
     }
 )
 
@@ -382,7 +391,7 @@ def html_to_pdf(html_str: str, out_path: str):
 
 def run():
     index_html = fetch(BASE + START)
-    links = get_links(index_html)
+    items = get_links(index_html)
 
     all_sections = []
 
@@ -391,7 +400,19 @@ def run():
     title = "Swift Concurrency"
     author = "Paul Hudson (Hacking with Swift)"
 
-    for i, url in enumerate(links, start=1):
+    i = 1
+
+    for item in items:
+
+        # ---- CHAPTER TITLE ----
+        if item[0] == "chapter":
+            chapter_name = item[1]
+            toc.append(("chapter", chapter_name))
+            continue
+
+        # ---- LINK ----
+        _, _, url = item
+
         print(f"[{i}] {url}")
 
         html = fetch(url)
@@ -404,12 +425,13 @@ def run():
         anchor = f"section-{i}"
 
         # TOC ENTRY
-        toc.append((chapter_title, anchor))
+        toc.append(("link", f"{i}. {chapter_title}", anchor))
 
-        # SECTION HEADER (FIXED TUPLE SHAPE)
+        # SECTION HEADER
         all_sections.append(("h", f"{i}. {chapter_title}", anchor))
-
         all_sections.extend(content)
+
+        i += 1
 
     html_doc = build_html(all_sections, toc, title, date_str, author)
     html_to_pdf(html_doc, "swift_concurrency.pdf")
