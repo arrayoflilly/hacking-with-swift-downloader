@@ -110,7 +110,7 @@ def extract(html: str):
         elif el.name in ["h1", "h2", "h3"]:
             txt = el.get_text(" ", strip=True)
             if txt:
-                out.append(("h", txt))
+                out.append(("h", txt, None))  # Anchor will be added later
 
         # --------
         # CODE
@@ -146,63 +146,118 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters.html import HtmlFormatter
 
-def build_html(all_sections):
+def build_html(all_sections, toc_items, title, date_str, author):
     formatter = HtmlFormatter(style="native", cssclass="code")
     base_css = formatter.get_style_defs(".code")
 
     custom_css = base_css + """
 body {
     font-family: -apple-system, sans-serif;
-    max-width: 850px;
-    margin: 40px auto;
-    line-height: 1.6;
+    max-width: 800px;
+    margin: 20px auto;
+    line-height: 1.7;
+    font-size: 12pt;
 }
 
-/* code block */
+/* COVER */
+.cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    page-break-after: always;
+    text-align: center;
+    padding: 40px;
+}
+
+.cover h1 {
+    font-size: 36pt;
+    margin-bottom: 20px;
+}/* COVER */
+.cover {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    page-break-after: always;
+    text-align: center;
+    padding: 40px;
+}
+
+/* TOC */
+.toc {
+    /*
+    page-break-after: always;
+    */
+}
+
+.toc h2 {
+    font-size: 18pt;
+    margin-bottom: 16px;
+}
+
+.toc a {
+    display: block;
+    margin: 6px 0;
+    font-size: 11pt;
+    color: #4ea1ff;
+    text-decoration: none;
+}
+
+.toc a:hover {
+    text-decoration: underline;
+}
+
+/* CODE */
 .code {
     background: #1a1b26 !important;
     border-radius: 10px;
     padding: 14px;
 }
 
-.code .highlight {
-    background: #1a1b26 !important;
-}
-
 .code pre {
     background: transparent !important;
     color: #c0caf5 !important;
-    padding: 0;
     margin: 0;
 }
 
-/* headings */
-h1 {
+/* HEADINGS */
+.section-title {
     page-break-before: always;
+    font-size: 22pt;
+    margin-bottom: 12px;
 }
 
-/* blockquote */
+/* TEXT */
+p {
+    font-size: 12pt;
+}
+
+li {
+    font-size: 12pt;
+}
+
+/* QUOTES */
 blockquote {
-    border-left: 4px solid #ccc;
+    border-left: 4px solid #444;
     margin: 20px 0;
     padding: 10px 16px;
-    color: #555;
-    background: #f9f9f9;
+    color: #444;
+    background: #f6f6f6;
     font-style: italic;
 }
 
-/* list */
+/* LISTS */
 ul {
     padding-left: 20px;
     margin-bottom: 16px;
 }
 
-li {
-    margin-bottom: 6px;
-}
-
+/* LINKS */
 a {
-    font-size: 0.9em;
+    font-size: 10pt;
     color: #4ea1ff;
     text-decoration: none;
     word-break: break-word;
@@ -225,40 +280,58 @@ a:hover {
 <body>
 """)
 
+    # COVER
+    html.append(f"""
+<div class="cover">
+    <h1>{title}</h1>
+    <div class="meta">
+        Author: {author}<br>
+        {date_str}
+    </div>
+</div>
+""")
+
+    # TOC
+    html.append("<div class='toc'>")
+    html.append("<h2>Table of Contents</h2>")
+
+    for i, (name, anchor) in enumerate(toc_items, start=1):
+        html.append(f"<a href='#{anchor}'>{i}. {name}</a>")
+
+    html.append("</div>")
+
+    # CONTENT
     in_list = False
 
     for section in all_sections:
         kind = section[0]
 
-        # ---- HEADINGS ----
         if kind == "h":
             if in_list:
                 html.append("</ul>")
                 in_list = False
-            html.append(f"<h1>{section[1]}</h1>")
 
-        # ---- PARAGRAPH ----
+            anchor = section[2] if len(section) > 2 else ""
+            html.append(f"<h1 class='section-title' id='{anchor}'>{section[1]}</h1>")
+
         elif kind == "p":
             if in_list:
                 html.append("</ul>")
                 in_list = False
             html.append(f"<p>{section[1]}</p>")
 
-        # ---- BLOCKQUOTE (NEW) ----
         elif kind == "quote":
             if in_list:
                 html.append("</ul>")
                 in_list = False
             html.append(f"<blockquote>{section[1]}</blockquote>")
 
-        # ---- LIST ----
         elif kind == "li":
             if not in_list:
                 html.append("<ul>")
                 in_list = True
             html.append(f"<li>{section[1]}</li>")
 
-        # ---- CODE ----
         elif kind == "code":
             if in_list:
                 html.append("</ul>")
@@ -276,7 +349,6 @@ a:hover {
 
     html.append("</body></html>")
     return "\n".join(html)
-
 # -------------------------
 # PDF render
 # -------------------------
@@ -289,16 +361,17 @@ def html_to_pdf(html_str: str, out_path: str):
         page.set_content(html_str, wait_until="networkidle")
 
         page.pdf(
-            path=out_path,
-            format="A4",
-            print_background=True,
-            margin={
-                "top": "15mm",
-                "bottom": "15mm",
-                "left": "15mm",
-                "right": "15mm"
-            }
-        )
+    path=out_path,
+    format="A4",
+    print_background=True,
+    scale=1.3,   # EZ A FONTOS
+    margin={
+        "top": "10mm",
+        "bottom": "10mm",
+        "left": "10mm",
+        "right": "10mm"
+    }
+)
 
         browser.close()
 
@@ -313,22 +386,32 @@ def run():
 
     all_sections = []
 
+    toc = []
+    date_str = "Updated for Xcode 16.4"
+    title = "Swift Concurrency"
+    author = "Paul Hudson (Hacking with Swift)"
+
     for i, url in enumerate(links, start=1):
         print(f"[{i}] {url}")
 
         html = fetch(url)
         content = extract(html)
-        
+
         print("CONTENT SIZE:", len(content))
-        # print(content[:5])
 
         slug = url.split("/")[-1]
-        title = slug_to_title(slug)
+        chapter_title = slug_to_title(slug)
+        anchor = f"section-{i}"
 
-        all_sections.append(("h", f"{i}. {title}"))
+        # TOC ENTRY
+        toc.append((chapter_title, anchor))
+
+        # SECTION HEADER (FIXED TUPLE SHAPE)
+        all_sections.append(("h", f"{i}. {chapter_title}", anchor))
+
         all_sections.extend(content)
 
-    html_doc = build_html(all_sections)
+    html_doc = build_html(all_sections, toc, title, date_str, author)
     html_to_pdf(html_doc, "swift_concurrency.pdf")
 
 
