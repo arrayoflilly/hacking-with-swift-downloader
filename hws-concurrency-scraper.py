@@ -1,5 +1,7 @@
 import requests
 import base64
+import json
+import time
 from pathlib import Path
 
 from bs4 import BeautifulSoup, Tag
@@ -12,19 +14,27 @@ from pygments.formatters.html import HtmlFormatter
 from playwright.sync_api import sync_playwright
 
 BASE = "https://www.hackingwithswift.com"
-START = "/quick-start/concurrency"
+START = "/quick-start/swiftui"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0"
 }
 
-IMG_PATH = Path(__file__).parent / "img" / "cover.png"
+IMG_PATH = Path(__file__).parent / "img" / "cover 3.png"
 
 FONT_ROBOTO = Path("font/Roboto-VariableFont_wdth,wght.ttf").absolute().as_uri()
 FONT_ROBOTO_ITALIC = Path("font/Roboto-Italic-VariableFont_wdth,wght.ttf").absolute().as_uri()
 FONT_SLAB = Path("font/RobotoSlab-VariableFont_wght.ttf").absolute().as_uri()
 FONT_MONTSERRAT = Path("font/Montserrat-VariableFont_wght.ttf").absolute().as_uri()
 
+AUTHOR = "Paul Hudson (Hacking with Swift)"
+TITLE = "SwiftUI by Example"
+DATE_STR = "Updated for Xcode 16.4"
+
+PDF_PATH = "swiftui-by-example.pdf"
+
+CACHE_PATH = Path(__file__).parent / "cache.json"
+CACHE_TTL = 60 * 60 * 24  # 24 óra másodpercben
 # -------------------------
 # utils
 # -------------------------
@@ -33,10 +43,40 @@ def slug_to_title(slug: str) -> str:
     return slug.replace("-", " ")
 
 
+def load_cache() -> dict:
+    if CACHE_PATH.exists():
+        with open(CACHE_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def save_cache(cache: dict):
+    with open(CACHE_PATH, "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False, indent=2)
+
+
 def fetch(url: str) -> str:
+    cache = load_cache()
+
+    entry = cache.get(url)
+    if entry:
+        age = time.time() - entry["timestamp"]
+        if age < CACHE_TTL:
+            print(f"  [cache] {url}")
+            return entry["html"]
+
+    print(f"  [fetch] {url}")
     r = requests.get(url, headers=HEADERS)
     r.raise_for_status()
-    return r.text
+    html = r.text
+
+    cache[url] = {
+        "timestamp": time.time(),
+        "html": html
+    }
+    save_cache(cache)
+
+    return html
 
 
 def load_image_base64(path):
@@ -68,7 +108,7 @@ def get_links(html: str):
             if not href:
                 continue
 
-            if "/quick-start/concurrency/" in str(href):
+            if START in str(href):
                 full = urljoin(BASE, str(href))
 
                 if full not in seen:
@@ -250,7 +290,7 @@ def build_html(all_sections, toc_items, title, date_str, author):
         margin-top: 16px;
     }
 
-    .toc a, a {
+    .toc a {
         display: block;
         margin: 4px 0 4px 12px;
         font-size: 11pt;
@@ -261,27 +301,51 @@ def build_html(all_sections, toc_items, title, date_str, author):
     .section-title {
         page-break-before: always;
         font-size: 20pt;
-        margin-bottom: 12px;
+        margin-bottom: 2.5em;
+    }
+    
+    a {
+        font-size: 11pt;
+        color: #4ea1ff;
+        text-decoration: none;
     }
 
     p {
         text-align: justify;
     }
+    
+    code {
+        font-family: "JetBrains Mono", monospace;        
+        background: #ececec;
+        color: #2d2d2d;
+        padding: 1px 3px;
+        margin: 0 2px;
+        border-radius: 2px;
+        font-size: 0.9em;
+        font-weight: 500;
+    }
 
     .code {
         background: #363636 !important;
         border-radius: 10px;
-        overflow-x: auto;
-        padding: 10px;
+        overflow-wrap: break-word;
+        padding: 0;
         margin: 10px 0;
     }
 
+    .code,
+    .code .highlight,
     .code pre {
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
+    }
+
+    .code pre {
+        background: transparent !important;
         margin: 0;
-        padding: 12px;
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-size: 9pt;
+        padding: 20px;
+        font-size: 8pt;
+        line-height: 1.4;
     }
 
     blockquote {
@@ -290,10 +354,7 @@ def build_html(all_sections, toc_items, title, date_str, author):
         padding: 12px;
         margin: 20px 0;
     }
-    
-    h1, h2, h3 {
-        margin-bottom: 1.5em;
-    }
+
     """
 
     html = []
@@ -404,15 +465,15 @@ def html_to_pdf(html_str: str, out_path: str):
             print_background=True,
             scale=1.0,
             margin={
-                "top": "20mm",
-                "bottom": "20mm",
+                "top": "25mm",
+                "bottom": "25mm",
                 "left": "20mm",
                 "right": "20mm"
             },
             display_header_footer=True,
-            header_template="""
+            header_template=f"""
             <div style="width:100%; font-size:12px; text-align:center; font-family: 'Roboto', sans-serif; color: #000;">
-                <span>Swift Concurrency 6.2 - Hacking with Swift</span>
+                <span>{TITLE} - Hacking with Swift</span>
                 <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 15%;" />
             </div>
             """,
@@ -438,9 +499,9 @@ def run():
     all_sections = []
 
     toc = []
-    date_str = "Updated for Xcode 16.4"
-    title = "Swift Concurrency"
-    author = "Paul Hudson (Hacking with Swift)"
+    date_str = DATE_STR
+    title = TITLE
+    author = AUTHOR
 
     i = 1
 
@@ -481,7 +542,7 @@ def run():
         i += 1
 
     html_doc = build_html(all_sections, toc, title, date_str, author)
-    html_to_pdf(html_doc, "swift_concurrency.pdf")
+    html_to_pdf(html_doc, PDF_PATH)
 
 
 if __name__ == "__main__":
