@@ -1,2 +1,3 @@
 .DS_Store
 swift_concurrency.pdf
+venv/*

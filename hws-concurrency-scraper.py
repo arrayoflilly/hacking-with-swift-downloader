@@ -1,4 +1,7 @@
 import requests
+import base64
+from pathlib import Path
+
 from bs4 import BeautifulSoup, Tag
 from urllib.parse import urljoin
 
@@ -15,13 +18,20 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0"
 }
 
+IMG_PATH = Path(__file__).parent / "img" / "cover.png"
+IMG_PATH = IMG_PATH.resolve().as_uri()
+
+FONT_ROBOTO = Path("font/Roboto-VariableFont_wdth,wght.ttf").absolute().as_uri()
+FONT_ROBOTO_ITALIC = Path("font/Roboto-Italic-VariableFont_wdth,wght.ttf").absolute().as_uri()
+FONT_SLAB = Path("font/RobotoSlab-VariableFont_wght.ttf").absolute().as_uri()
+FONT_MONTSERRAT = Path("font/Montserrat-VariableFont_wght.ttf").absolute().as_uri()
+
 # -------------------------
 # utils
 # -------------------------
 
 def slug_to_title(slug: str) -> str:
-    words = slug.replace("-", " ").split()
-    return words[0].capitalize() + " " + " ".join(w.lower() for w in words[1:])
+    return slug.replace("-", " ")
 
 
 def fetch(url: str) -> str:
@@ -158,106 +168,204 @@ from pygments.lexers import get_lexer_by_name
 from pygments.formatters.html import HtmlFormatter
 
 def build_html(all_sections, toc_items, title, date_str, author):
-    formatter = HtmlFormatter(style="native", cssclass="code")
+    formatter = HtmlFormatter(style="nord", cssclass="code")
     base_css = formatter.get_style_defs(".code")
+    img_base64 = load_image_base64("img/cover.png")
+    
+    custom_css = f"""
+    @font-face {{
+    font-family: 'Roboto';
+    src: url('{FONT_ROBOTO}');
+    font-weight: 100 900;
+}}
 
-    custom_css = base_css + """
+@font-face {{
+    font-family: 'Roboto';
+    src: url('{FONT_ROBOTO_ITALIC}');
+    font-style: italic;
+    font-weight: 100 900;
+}}
+
+@font-face {{
+    font-family: 'Roboto Slab';
+    src: url('{FONT_SLAB}');
+    font-weight: 100 900;
+}}
+
+@font-face {{
+    font-family: 'Montserrat';
+    src: url('{FONT_MONTSERRAT}');
+    font-weight: 100 900;
+}}
+    """ + base_css + """
 body {
-    font-family: -apple-system, sans-serif;
-    max-width: 800px;
-    margin: 20px auto;
-    line-height: 1.7;
+    font-family: 'Roboto', -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.3;
     font-size: 12pt;
 }
 
-/* COVER */
+h1, h2, h3,
+.section-title,
+.cover h1,
+.chapter-page h2 {
+    font-family: 'Roboto Slab', serif;
+    font-weight: 600;
+}
+
+/* PDF GLOBAL MARGINS RESET */
+@page {
+    margin: 20mm;
+}
+
+/* COVER (FULL BLEED INSIDE PAGE OVERRIDE) */
 .cover {
+    width: 100%;
     height: 100vh;
+
+    background: #363636;
+    color: white;
+
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    page-break-after: always;
+
     text-align: center;
-    padding: 40px;
+
+    page-break-after: always;
+}
+
+.cover img {
+    width: 160px;
+    height: auto;
+    margin-bottom: 20px;
 }
 
 .cover h1 {
-    font-size: 36pt;
-    margin-bottom: 20px;
-}/* COVER */
-.cover {
+    font-size: 34pt;
+    margin: 0;
+}
+
+.cover .meta {
+    margin-top: 10px;
+    font-size: 11pt;
+    color: #ddd;
+}
+
+/* CHAPTER PAGE */
+.chapter-page {
     height: 100vh;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+
+    page-break-before: always;
     page-break-after: always;
+
     text-align: center;
-    padding: 40px;
+}
+
+.chapter-page h2 {
+    font-size: 28pt;
 }
 
 /* TOC */
+.toc {
+    page-break-after: always;
+    padding-top: 10px;
+}
+
 .toc h2 {
     font-size: 18pt;
     margin-bottom: 16px;
 }
 
+.toc h3 {
+    margin-top: 18px;
+    font-size: 13pt;
+    color: #444;
+}
+
 .toc a {
     display: block;
-    margin: 6px 0;
+    margin: 4px 0 4px 14px;
     font-size: 11pt;
     color: #4ea1ff;
     text-decoration: none;
 }
 
-.toc a:hover {
-    text-decoration: underline;
+/* CODE */
+code {
+    font-family: Menlo, Monaco, monospace;
+    background: #eeeeee;
+    color: #363636;
+    padding: 1px 5px;
+    margin: 0 2px;
+    border-radius: 2px;
+    font-size: 0.9em;
+    font-weight: 500;
 }
 
-/* CODE */
 .code {
-    background: #1a1b26 !important;
+    background: #363636 !important;
     border-radius: 10px;
-    padding: 14px;
+    overflow: hidden;
 }
 
 .code pre {
     background: transparent !important;
-    color: #c0caf5 !important;
-    margin: 0;
-}
-
-/* HEADINGS */
-.section-title {
-    page-break-before: always;
-    font-size: 22pt;
-    margin-bottom: 12px;
+    color: #c0caf5;
+    line-height: 1.4;
+    font-size: 7pt;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 12px 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    box-sizing: border-box;
 }
 
 /* TEXT */
+.section-title {
+    page-break-before: always;
+    font-size: 20pt;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 20pt;
+    margin-bottom: 24px;
+}
+
+h2 {
+    font-size: 18pt;
+    margin-bottom: 18px;
+}
+
+h3 {
+    font-size: 16pt;
+    margin-bottom: 12px;
+}
+
 p {
     font-size: 12pt;
+    text-align: justify;
+    hyphens: auto;
+    font-weight: 400;
+}
+
+strong {
+    font-weight: 600;
+}
+
+em {
+    font-style: italic;
 }
 
 li {
     font-size: 12pt;
-}
-
-/* QUOTES */
-blockquote {
-    border-left: 4px solid #444;
-    margin: 20px 0;
-    padding: 10px 16px;
-    color: #444;
-    background: #f6f6f6;
-    font-style: italic;
-}
-
-/* LISTS */
-ul {
-    padding-left: 20px;
-    margin-bottom: 16px;
 }
 
 /* LINKS */
@@ -265,11 +373,16 @@ a {
     font-size: 10pt;
     color: #4ea1ff;
     text-decoration: none;
-    word-break: break-word;
 }
 
-a:hover {
-    text-decoration: underline;
+blockquote {
+    border-left: 4px solid #363636;
+    border-radius: 0px;
+    background: #f0f0f0;
+    margin: 50px 0;
+    padding: 14px 10px;
+    color: #2a2a2a;
+    font-style: italic;
 }
 """
 
@@ -285,10 +398,13 @@ a:hover {
 <body>
 """)
 
+    # -------------------------
     # COVER
+    # -------------------------
     html.append(f"""
 <div class="cover">
-    <h1>{title}</h1>
+<img src="data:image/png;base64,{img_base64}" width="400"/>
+<h1>{title}</h1>
     <div class="meta">
         Author: {author}<br>
         {date_str}
@@ -296,26 +412,42 @@ a:hover {
 </div>
 """)
 
+    # -------------------------
     # TOC
+    # -------------------------
     html.append("<div class='toc'>")
     html.append("<h2>Table of Contents</h2>")
 
     for item in toc_items:
         if item[0] == "chapter":
-            html.append(f"<h3 style='margin-top:16px'>{item[1]}</h3>")
+            html.append(f"<h3>{item[1]}</h3>")
         else:
             _, name, anchor = item
             html.append(f"<a href='#{anchor}'>{name}</a>")
 
     html.append("</div>")
 
+    # -------------------------
     # CONTENT
+    # -------------------------
     in_list = False
 
     for section in all_sections:
         kind = section[0]
 
-        if kind == "h":
+        # CHAPTER PAGE (NO NUMBERS)
+        if kind == "chapter":
+            if in_list:
+                html.append("</ul>")
+                in_list = False
+
+            html.append(f"""
+<div class="chapter-page">
+    <h2>{section[1]}</h2>
+</div>
+""")
+
+        elif kind == "h":
             if in_list:
                 html.append("</ul>")
                 in_list = False
@@ -358,10 +490,19 @@ a:hover {
 
     html.append("</body></html>")
     return "\n".join(html)
+
+
+# -------------------------
+# utils for html builder
+# -------------------------
+def load_image_base64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
+
+
 # -------------------------
 # PDF render
 # -------------------------
-
 def html_to_pdf(html_str: str, out_path: str):
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -373,22 +514,30 @@ def html_to_pdf(html_str: str, out_path: str):
     path=out_path,
     format="A4",
     print_background=True,
-    scale=1.5,   
+    scale=1.2,   
     margin={
         "top": "20mm",
         "bottom": "20mm",
         "left": "20mm",
         "right": "20mm"
-    }
+    },
+    display_header_footer=True,
+    header_template="""
+        <div></div>
+    """,
+    footer_template="""
+        <div style="width:100%; font-size:10px; text-align:center; color:#363636;">
+            <span class="pageNumber"></span> / <span class="totalPages"></span>
+        </div>
+    """
 )
 
         browser.close()
-
+    
 
 # -------------------------
 # main pipeline
 # -------------------------
-
 def run():
     index_html = fetch(BASE + START)
     items = get_links(index_html)
@@ -408,6 +557,7 @@ def run():
         if item[0] == "chapter":
             chapter_name = item[1]
             toc.append(("chapter", chapter_name))
+            all_sections.append(("chapter", chapter_name))
             continue
 
         # ---- LINK ----
@@ -425,16 +575,17 @@ def run():
         anchor = f"section-{i}"
 
         # TOC ENTRY
-        toc.append(("link", f"{i}. {chapter_title}", anchor))
+        toc.append(("link", f"{chapter_title}", anchor))
 
         # SECTION HEADER
-        all_sections.append(("h", f"{i}. {chapter_title}", anchor))
+        all_sections.append(("h", f"{chapter_title}", anchor))
         all_sections.extend(content)
 
         i += 1
 
     html_doc = build_html(all_sections, toc, title, date_str, author)
     html_to_pdf(html_doc, "swift_concurrency.pdf")
+
 
 
 if __name__ == "__main__":
