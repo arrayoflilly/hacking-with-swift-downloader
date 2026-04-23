@@ -132,6 +132,7 @@ def extract(html: str):
 
     out = []
     started = False
+    first_heading_skipped = False   # <- IDE
 
     for el in container.children:
 
@@ -163,7 +164,11 @@ def extract(html: str):
         elif el.name in ["h1", "h2", "h3"]:
             txt = el.get_text(" ", strip=True)
             if txt:
-                out.append(("h", txt, None))
+                if not first_heading_skipped:
+                    first_heading_skipped = True
+                    continue
+
+                out.append((el.name, txt))   # <- NEM "h"
 
         elif el.name == "pre":
             out.append(("code", el.get_text("\n", strip=False)))
@@ -301,7 +306,7 @@ def build_html(all_sections, toc_items, title, date_str, author):
     .section-title {
         page-break-before: always;
         font-size: 20pt;
-        margin-bottom: 2.5em;
+        margin-bottom: 2em;
     }
     
     a {
@@ -405,11 +410,22 @@ def build_html(all_sections, toc_items, title, date_str, author):
 </div>
 """)
 
-        elif kind == "h":
+        elif kind == "h_main":            
             if in_list:
                 html.append("</ul>")
                 in_list = False
+                
             html.append(f"<h1 class='section-title' id='{section[2]}'>{section[1]}</h1>")
+            
+        elif kind == "h1":
+            html.append(f"<h2>{section[1]}</h2>")
+
+        elif kind == "h2":
+            html.append(f"<h3>{section[1]}</h3>")
+
+        elif kind == "h3":
+            html.append(f"<h4>{section[1]}</h4>")
+
 
         elif kind == "p":
             if in_list:
@@ -536,7 +552,7 @@ def run():
         toc.append(("link", chapter_title, anchor))
 
         # SECTION HEADER
-        all_sections.append(("h", chapter_title, anchor))
+        all_sections.append(("h_main", chapter_title, anchor))        
         all_sections.extend(content)
 
         i += 1
