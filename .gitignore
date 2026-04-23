@@ -3,3 +3,5 @@ swift_concurrency.pdf
 venv/*
 cache.json
 *.pdf
+output/*
+cache/*
