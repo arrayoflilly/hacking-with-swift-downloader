@@ -1,6 +1,8 @@
+# cache.py
+
 import json
 
-from config import CACHE_DIR, CACHE_PATH
+from src.config.config import CACHE_DIR, CACHE_PATH
 
 
 # -------------------------
@@ -8,6 +10,7 @@ from config import CACHE_DIR, CACHE_PATH
 # -------------------------
 
 def load_cache() -> dict:
+    
     CACHE_DIR.mkdir(exist_ok=True, parents=True)
 
     if CACHE_PATH.exists():

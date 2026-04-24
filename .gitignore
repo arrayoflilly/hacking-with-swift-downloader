@@ -1,7 +1,21 @@
 .DS_Store
-swift_concurrency.pdf
-venv/*
-cache.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual env
+venv/
+.venv/
+
+# Project runtime artifacts
+cache/
+output/
+logs/
 *.pdf
-output/*
-cache/*
+cache.json

@@ -1,8 +1,8 @@
 import requests
 import time
 
-from cache import load_cache, save_cache
-from config import HEADERS, CACHE_TTL
+from src.core.cache import load_cache, save_cache
+from src.config.config import HEADERS, CACHE_TTL
 
 # -------------------------
 # Fetcher with caching
@@ -18,10 +18,10 @@ def fetch(url: str) -> str:
     if entry:
         age = time.time() - entry["timestamp"]
         if age < CACHE_TTL:
-            print(f"  [cache] {url}")
+            # print(f"  [cache] {url}")
             return entry["html"]
 
-    print(f"  [fetch] {url}")
+    # print(f"  [fetch] {url}")
     r = requests.get(url, headers=HEADERS)
     r.raise_for_status()
     html = r.text
