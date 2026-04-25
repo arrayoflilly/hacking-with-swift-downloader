@@ -79,12 +79,13 @@ BOOKS = [
     },
 ]
 
-TITLE = BOOKS[0]["title"]
-AUTHOR = BOOKS[0]["author"]
-START = BOOKS[0]["url"]
-IMG_PATH = BOOKS[0]["cover"]
-DATE_STR = BOOKS[0]["date_str"]
-PDF_PATH = PDF_DIR / BOOKS[0]["pdf_name"]
+BOOK_ID = 6
+TITLE = BOOKS[BOOK_ID]["title"]
+AUTHOR = BOOKS[BOOK_ID]["author"]
+START = BOOKS[BOOK_ID]["url"]
+IMG_PATH = BOOKS[BOOK_ID]["cover"]
+DATE_STR = BOOKS[BOOK_ID]["date_str"]
+PDF_PATH = PDF_DIR / BOOKS[BOOK_ID]["pdf_name"]
 
 CSS_PATH = PROJECT_ROOT / "assets" / "css" / "styles.css"
 

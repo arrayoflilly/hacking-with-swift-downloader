@@ -29,8 +29,8 @@ def _build_css(base_css: str) -> str:
 body {{ font-family: 'Roboto', sans-serif; margin: 0; padding: 0; line-height: 1.4; font-size: 12pt; }}
 @page {{ margin: 20mm; }}
 .cover {{ width: 100%; height: 100vh; background: #363636; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always; }}
-.cover img {{ width: 300px; height: auto; margin-bottom: 20px; display: block; }}
-.cover h1 {{ font-size: 34pt; margin: 0; }}
+.cover img {{ width: 400px; height: auto;   margin-bottom: 20px; display: block; }}
+.cover h1 {{ font-size: 26pt; margin: 0; }}
 .cover .meta {{ margin-top: 10px; font-size: 11pt; color: #ddd; }}
 .chapter-page {{ display: flex; align-items: center; justify-content: center; page-break-before: always; text-align: center; padding-top: 40vh;}}
 .chapter-page h2 {{ font-size: 26pt; }}
@@ -44,12 +44,12 @@ p.has-link {{ text-align: left; }}
 p.has-link a {{ white-space: nowrap; }}
 .toc-float {{
     position: fixed;
-    right: 20mm;
+    right: 0mm;
     bottom: 0mm;
     color: #4ea1ff;
     font-size: 11pt;
     text-decoration: none;
-    z-index: 999;
+    z-index: -1;
 }}
 code {{ font-family: "JetBrains Mono", monospace; background: #ececec; color: #2d2d2d; padding: 1px 3px; margin: 0 2px; border-radius: 2px; font-size: 0.9em; font-weight: 500; }}
 .code {{ background: #363636 !important; border-radius: 10px; overflow-wrap: break-word; padding: 0; margin: 10px 0; }}
