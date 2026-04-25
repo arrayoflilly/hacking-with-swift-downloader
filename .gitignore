@@ -19,3 +19,4 @@ output/
 logs/
 *.pdf
 cache.json
+.DS_Store

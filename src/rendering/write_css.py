@@ -1,3 +1,5 @@
+# write_css.py
+
 from src.config.config import FONT_MONTSERRAT, FONT_ROBOTO, FONT_ROBOTO_ITALIC, FONT_SLAB, CSS_PATH
 
 
@@ -43,7 +45,7 @@ p.has-link a {{ white-space: nowrap; }}
 .toc-float {{
     position: fixed;
     right: 20mm;
-    bottom: 1mm;
+    bottom: 0mm;
     color: #4ea1ff;
     font-size: 11pt;
     text-decoration: none;
@@ -60,6 +62,7 @@ blockquote {{ border-left: 4px solid #363636; background: #f0f0f0; padding: 12px
     display: block;
     break-inside: avoid;
     page-break-inside: avoid;
+    overflow: hidden;
 }}
 .asset img {{
     max-width: 88%;

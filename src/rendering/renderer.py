@@ -1,3 +1,5 @@
+# renderer.py
+
 from playwright.sync_api import Error, sync_playwright
 from src.config.config import TITLE
 
@@ -49,7 +51,7 @@ def html_to_pdf(html_str: str, out_path: str):
             return
         except Error:
             try:
-                browser.close()
+                browser.close() # type: ignore
             except Exception:
                 pass
 
