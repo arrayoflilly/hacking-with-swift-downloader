@@ -82,7 +82,7 @@ BOOKS = [
         "title": "100 Days of Swift",
         "author": "Paul Hudson and the Hacking with Swift team",
         "url": "/100",
-        "cover": PROJECT_ROOT / "assets" / "img" / "swift.png",
+        "cover": PROJECT_ROOT / "assets" / "img" / "3d.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "100-days-of-swift.pdf",
     },
@@ -91,13 +91,13 @@ BOOKS = [
         "title": "100 Days of SwiftUI",
         "author": "Paul Hudson and the Hacking with Swift team",
         "url": "/100/swiftui",
-        "cover": PROJECT_ROOT / "assets" / "img" / "3d.png",
+        "cover": PROJECT_ROOT / "assets" / "img" / "swiftui 2.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "100-days-of-swiftui.pdf",
     },
 ]
 
-BOOK_ID = 0
+BOOK_ID = 7
 TITLE = BOOKS[BOOK_ID]["title"]
 AUTHOR = BOOKS[BOOK_ID]["author"]
 START = BOOKS[BOOK_ID]["url"]
