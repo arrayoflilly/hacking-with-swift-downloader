@@ -30,6 +30,7 @@ def _render_cover(title: str, date_str: str, author: str) -> str:
 
 def _build_toc(nodes: List[Dict[str, Any]]) -> str:
     toc: List[tuple] = []
+    last_chapter_idx = None  # az aktuális chapter pozíciója a toc listában
 
     for node in nodes:
         ntype = node.get("type")
@@ -37,22 +38,72 @@ def _build_toc(nodes: List[Dict[str, Any]]) -> str:
         content = node.get("content") or ""
 
         if ntype == "chapter":
-            toc.append(("chapter", content))
+            last_chapter_idx = len(toc)
+            toc.append(("chapter", content, None, None))  # (type, text, anchor, paragraph)
             continue
+
+        if ntype == "paragraph" and last_chapter_idx is not None:
+            # Az utolsó chapter-hez tartozó paragrafust hozzáfűzzük
+            ch_type, ch_text, ch_anchor, _ = toc[last_chapter_idx]
+            toc[last_chapter_idx] = (ch_type, ch_text, ch_anchor, content)
+            last_chapter_idx = None  # csak az első paragrafust vesszük fel
+            continue
+
+        # Bármilyen nem-paragraph node megszakítja a chapter→paragraph kapcsolatot
+        if ntype not in ("chapter", "paragraph"):
+            last_chapter_idx = None
 
         if ntype == "section_title":
             anchor = meta.get("id")
             if anchor:
-                toc.append(("section", content, anchor))
+                toc.append(("section", content, anchor, None))
+            continue
+
+        if ntype == "subsection_title":
+            anchor = meta.get("id")
+            if anchor:
+                toc.append(("subsection", content, anchor, None))
+            continue
+
+        if ntype == "sub_subsection_title":
+            anchor = meta.get("id")
+            if anchor:
+                toc.append(("sub_subsection", content, anchor, None))
+            continue
 
     parts = ["<div class='toc' id='toc'><h2>Table of Contents</h2>"]
 
     for item in toc:
-        if item[0] == "chapter":
-            parts.append(f"<h3>{item[1]}</h3>")
-        elif item[0] == "section":
-            _, name, anchor = item
-            parts.append(f"<div class='toc-section'><a href='#{anchor}'>{name}</a></div>")
+        item_type = item[0]
+        text = item[1] or ""
+        anchor = item[2]
+        paragraph = item[3] if len(item) > 3 else None
+
+        if item_type == "chapter":
+            parts.append(f"<h3 class='toc-chapter'>{text}</h3>")
+            if paragraph:
+                parts.append(f"<p class='toc-chapter-desc'>{paragraph}</p>")
+
+        elif item_type == "section":
+            parts.append(
+                f"<div class='toc-section'>"
+                f"<a href='#{anchor}'>{text}</a>"
+                f"</div>"
+            )
+
+        elif item_type == "subsection":
+            parts.append(
+                f"<div class='toc-subsection'>"
+                f"<a href='#{anchor}'>{text}</a>"
+                f"</div>"
+            )
+
+        elif item_type == "sub_subsection":
+            parts.append(
+                f"<div class='toc-sub-subsection'>"
+                f"<a href='#{anchor}'>{text}</a>"
+                f"</div>"
+            )
 
     parts.append("</div>")
     return "\n".join(parts)
@@ -144,6 +195,16 @@ def _render_node(node: Dict[str, Any], idx: int) -> str:
         anchor = m.get("id") or f"sec-{idx}"
         m["id"] = anchor
         return f"<div class='page-break'></div>\n<h1 class='section-title' id='{anchor}'>{c_str}</h1>"
+
+    if t == "subsection_title":
+        anchor = m.get("id") or f"subsec-{idx}"
+        m["id"] = anchor
+        return f"<h2 class='subsection-title' id='{anchor}'>{c_str}</h2>"
+
+    if t == "sub_subsection_title":
+        anchor = m.get("id") or f"subsubsec-{idx}"
+        m["id"] = anchor
+        return f"<h3 class='sub-subsection-title' id='{anchor}'>{c_str}</h3>"
 
     if t == "heading":
         return _render_heading(c_str, m)

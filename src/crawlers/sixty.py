@@ -9,6 +9,12 @@ BASE = "https://www.hackingwithswift.com"
 
 
 def get_links_sixty(html: str) -> list:
+    """
+    A /sixty főoldal TOC parser.
+
+    h3 → chapter (TOC grouping, nem link)
+    ul/li/a /sixty/... → link (section_title lesz belőle run.py-ban)
+    """
     soup = BeautifulSoup(html, "html.parser")
     container = soup.select_one("div.col-lg-10")
     if not container:
@@ -43,5 +49,5 @@ def get_links_sixty(html: str) -> list:
     return items
 
 
-def extract_sixty(html: str, url  : str, cache) -> list:
+def extract_sixty(html: str, url: str, cache) -> list:
     return extract(html, cache)

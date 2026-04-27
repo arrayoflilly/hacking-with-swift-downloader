@@ -16,16 +16,26 @@ from src.crawlers.hundred import get_links_hundred, extract_hundred_day
 
 cache = CacheManager(str(CACHE_DIR))
 
-PASSTHROUGH_TYPES = {"chapter", "p", "list", "section_title", "heading", "quote", "code"}
+# Ezek a tuple típusok közvetlenül kerülnek all_sections-be,
+# nem igényelnek URL letöltést.
+PASSTHROUGH_TYPES = {"chapter", "p", "list", "section_title", "subsection_title", "heading", "quote", "code"}
 
 def get_crawler(book_id: int):
-    if book_id == 0:
-        return get_links_ios_swiftui, extract_ios_swiftui, False
-    if book_id == 2:
+    """
+    Visszaad: (get_links_fn, extract_fn, inject_section_title)
+
+    inject_section_title: True  → run.py injektálja a section_title-t fetch után
+                          False → a crawler maga adja ki a section_title-t
+    """
+    if book_id == 0:   # Hacking with iOS: SwiftUI Edition
+        return get_links_ios_swiftui, extract_ios_swiftui, True
+    if book_id == 2:   # Swift in Sixty Seconds
         return get_links_sixty, extract_sixty, True
-    if book_id == 7:
+    if book_id == 7:   # 100 Days of Swift
         return get_links_hundred, extract_hundred_day, False
+    # book_id == 1: Swift for Complete Beginners
     return get_links, lambda html, url, cache: extract(html, cache), True
+
 
 # -------------------------
 # main pipeline
@@ -33,7 +43,7 @@ def get_crawler(book_id: int):
 
 def run():
     # Debug reset only once, otherwise previously downloaded assets disappear.
-    reset_outputs_and_cache()
+    # reset_outputs_and_cache()
     log_reset()
 
     get_links_fn, extract_fn, inject_section_title = get_crawler(BOOK_ID)
@@ -43,14 +53,14 @@ def run():
 
     all_sections = []
     i = 1
-    
-    toc = []  # List of (id, title) for TOC generation
 
     for item in items:
+        # Passthrough elemek — nem URL-ek, közvetlenül all_sections-be
         if item[0] in PASSTHROUGH_TYPES:
             all_sections.append(item)
             continue
 
+        # link tuple: ("link", title, url)
         _, link_text, url = item
 
         print(f"[{i}] {link_text}")
@@ -58,6 +68,8 @@ def run():
         html = fetch(url)
         content = extract_fn(html, url, cache)
 
+        # inject_section_title=True esetén a run.py injektálja az oldal boundary-t
+        # inject_section_title=False esetén a crawler maga adja ki (pl. hundred)
         if inject_section_title:
             anchor = f"section-{i}"
             all_sections.append(("section_title", link_text.strip(), {"id": anchor}))

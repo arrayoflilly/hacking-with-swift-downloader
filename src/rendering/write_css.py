@@ -36,8 +36,15 @@ body {{ font-family: 'Roboto', sans-serif; margin: 0; padding: 0; line-height: 1
 .chapter-page h2 {{ font-size: 26pt; }}
 .toc {{ page-break-after: always; }}
 .toc h3 {{ margin-top: 16px; }}
+.toc-chapter {{ margin-top: 16px; margin-bottom: 2px; }}
+.toc-chapter-desc {{ margin: 0 0 6px 0; font-size: 10pt; color: #555; }}
 .toc a {{ display: block; margin: 4px 0 4px 12px; font-size: 11pt; color: #4ea1ff; text-decoration: none; }}
+.toc-section a {{ margin-left: 12px; }}
+.toc-subsection a {{ margin-left: calc(12px + 1cm); }}
+.toc-sub-subsection a {{ margin-left: calc(12px + 2cm); }}
 .section-title {{ page-break-before: always; font-size: 20pt; margin-bottom: 2em; }}
+.subsection-title {{ font-size: 16pt; margin-top: 1.5em; margin-bottom: 0.8em; }}
+.sub-subsection-title {{ font-size: 13pt; margin-top: 1em; margin-bottom: 0.5em; }}
 a {{ font-size: 11pt; color: #4ea1ff; text-decoration: none; }}
 p {{ text-align: justify; }}
 p.has-link {{ text-align: left; }}

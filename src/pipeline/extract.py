@@ -284,6 +284,9 @@ def _is_content_started(el: Tag, started: bool) -> bool:
     if "lead" in classes:
         return True
 
+    if "hws-main-title" in classes:
+        return True
+
     return started
 
 
@@ -393,7 +396,16 @@ def extract(html: str, cache: CacheManager):
             continue
 
         if el.name == "p":
+            if el.find("a", href="/about"):
+                continue
+            if el.find("em"):
+                em  = el.find("em")
+                emphasized_text = em.get_text(" ", strip=True) # type: ignore
+                if re.search(r"updated?\s+for", emphasized_text, re.IGNORECASE):
+                    continue
+            
             xcode_link = _extract_xcode_project_link(el)
+            
             if xcode_link:
                 out.append(xcode_link)
                 continue

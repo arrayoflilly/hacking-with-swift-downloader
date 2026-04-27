@@ -10,6 +10,14 @@ _LINK_PREFIX = "/books/ios-swiftui/"
 
 
 def get_links_ios_swiftui(html: str) -> list:
+    """
+    A /books/ios-swiftui főoldal TOC parser.
+
+    h2 → chapter (TOC grouping, projekt neve)
+    p közvetlenül h2 után → p passthrough (subtitle)
+    h4 → chapter (szekció fejléc: Overview, Implementation, Challenges)
+    ul/li/a /books/ios-swiftui/... → link (section_title lesz belőle run.py-ban)
+    """
     soup = BeautifulSoup(html, "html.parser")
 
     container = soup.select_one("div.container div[style*='max-width']")
