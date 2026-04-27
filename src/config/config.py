@@ -22,7 +22,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "ios.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "hacking-with-ios-swiftui.pdf",
-        "has_working_crawler_and_extractor": False,  
+        "has_working_crawler_and_extractor": True,  
     },
     {
         "id": 1,
@@ -42,7 +42,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "sixty.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "swift-in-sixty-seconds.pdf",
-        "has_working_crawler_and_extractor": False,
+        "has_working_crawler_and_extractor": True,
     },
     {
         "id": 3,
