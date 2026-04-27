@@ -15,6 +15,7 @@ from src.rendering.renderers import (
 )
 from src.utils.utils import load_image_base64
 from src.rendering.write_css import get_styles_css
+from src.core.logger import log
 
 
 def _render_cover(title: str, date_str: str, author: str) -> str:
@@ -74,6 +75,7 @@ def _build_toc(nodes: List[Dict[str, Any]]) -> str:
     parts = ["<div class='toc' id='toc'><h2>Table of Contents</h2>"]
 
     for item in toc:
+        log(f"item type, textm, anchor: , {item[0]}, {item[1]}, {item[2]}")  # debug
         item_type = item[0]
         text = item[1] or ""
         anchor = item[2]
