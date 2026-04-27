@@ -18,3 +18,8 @@ logs/
 *.pdf
 cache.json
 .DS_Store
+
+# IDE and editor files
+.vscode/
+*.code-workspace
+
