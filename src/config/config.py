@@ -22,6 +22,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "ios.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "hacking-with-ios-swiftui.pdf",
+        "has_working_crawler_and_extractor": False,  
     },
     {
         "id": 1,
@@ -31,6 +32,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "beginners.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "swift-for-complete-beginners.pdf",
+        "has_working_crawler_and_extractor": True,
     },
     {
         "id": 2,
@@ -40,6 +42,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "sixty.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "swift-in-sixty-seconds.pdf",
+        "has_working_crawler_and_extractor": False,
     },
     {
         "id": 3,
@@ -49,6 +52,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "swift.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "understanding-swift.pdf",
+        "has_working_crawler_and_extractor": True,
     },
     {
         "id": 4,
@@ -58,6 +62,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "swiftui.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "swiftui-by-example.pdf",
+        "has_working_crawler_and_extractor": True,
     },
     {
         "id": 5,
@@ -67,6 +72,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "swiftdata.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "swiftdata-by-example.pdf",
+        "has_working_crawler_and_extractor": True,
     },
     {
         "id": 6,
@@ -76,6 +82,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "concurrency.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "swift-concurrency-by-example.pdf",
+        "has_working_crawler_and_extractor": True,
     },
     {
         "id": 7,
@@ -85,6 +92,7 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "3d.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "100-days-of-swift.pdf",
+        "has_working_crawler_and_extractor": True,  
     },
     {
         "id": 8,
@@ -94,10 +102,11 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "swiftui 2.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "100-days-of-swiftui.pdf",
+        "has_working_crawler_and_extractor": False,
     },
 ]
 
-BOOK_ID = 7
+BOOK_ID = 8
 TITLE = BOOKS[BOOK_ID]["title"]
 AUTHOR = BOOKS[BOOK_ID]["author"]
 START = BOOKS[BOOK_ID]["url"]

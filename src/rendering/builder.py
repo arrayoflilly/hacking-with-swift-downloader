@@ -15,7 +15,6 @@ from src.rendering.renderers import (
 )
 from src.utils.utils import load_image_base64
 from src.rendering.write_css import get_styles_css
-from src.core.logger import log
 
 
 def _render_cover(title: str, date_str: str, author: str) -> str:
@@ -56,26 +55,28 @@ def _build_toc(nodes: List[Dict[str, Any]]) -> str:
 
         if ntype == "section_title":
             anchor = meta.get("id")
+            label = meta.get("toc_title") or content
             if anchor:
-                toc.append(("section", content, anchor, None))
+                toc.append(("section", label, anchor, None))
             continue
 
         if ntype == "subsection_title":
             anchor = meta.get("id")
+            label = meta.get("toc_title") or content
             if anchor:
-                toc.append(("subsection", content, anchor, None))
+                toc.append(("subsection", label, anchor, None))
             continue
 
         if ntype == "sub_subsection_title":
             anchor = meta.get("id")
+            label = meta.get("toc_title") or content
             if anchor:
-                toc.append(("sub_subsection", content, anchor, None))
+                toc.append(("sub_subsection", label, anchor, None))
             continue
 
     parts = ["<div class='toc' id='toc'><h2>Table of Contents</h2>"]
 
     for item in toc:
-        log(f"item type, textm, anchor: , {item[0]}, {item[1]}, {item[2]}")  # debug
         item_type = item[0]
         text = item[1] or ""
         anchor = item[2]
@@ -198,15 +199,21 @@ def _render_node(node: Dict[str, Any], idx: int) -> str:
         m["id"] = anchor
         return f"<div class='page-break'></div>\n<h1 class='section-title' id='{anchor}'>{c_str}</h1>"
 
+    if t == "subpage_header":
+        return f"""
+    <div class='page-break'></div>
+<h1 class='subpage-header'>{c_str}</h1>
+"""
+
     if t == "subsection_title":
         anchor = m.get("id") or f"subsec-{idx}"
         m["id"] = anchor
-        return f"<h2 class='subsection-title' id='{anchor}'>{c_str}</h2>"
+        return f"<div class='body-subsection' id='{anchor}'><a href='#{anchor}'>{c_str}</a></div>"
 
     if t == "sub_subsection_title":
         anchor = m.get("id") or f"subsubsec-{idx}"
         m["id"] = anchor
-        return f"<h3 class='sub-subsection-title' id='{anchor}'>{c_str}</h3>"
+        return f"<div class='body-sub-subsection' id='{anchor}'><a href='#{anchor}'>{c_str}</a></div>"
 
     if t == "heading":
         return _render_heading(c_str, m)

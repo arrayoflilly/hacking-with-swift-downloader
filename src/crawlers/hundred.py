@@ -23,15 +23,7 @@ _SKIP_EXACT = (
     "/read",
     "/sixty",
     "/100/",
-    "/100/swiftui",   # SwiftUI főoldal — nem letöltendő tartalom, csak TOC-forrás
 )
-
-# h2 szövegek a nap-oldalakon, amelyeket ki kell szűrni (SwiftUI-specifikus zajok)
-_SKIP_DAY_H2 = {
-    "how can this day be improved?",
-    "now share your progress…",
-    "now share your progress",
-}
 
 _SKIP_CLASSES = (
     "chatparent",
@@ -39,29 +31,33 @@ _SKIP_CLASSES = (
     "hws-sponsor",
 )
 
+_SUBSECTION_PREFIXES = (
+    "/sixty/",
+    "/quick-start/",
+    "/read/",
+    "/guide/",
+)
+
+def _is_valid_subsection_href(href: str) -> bool:
+    for prefix in _SUBSECTION_PREFIXES:
+        if href.startswith(prefix):
+            return True
+    return False
+
+
+def _is_needhelp_block(item: tuple) -> bool:
+    """Szűri a 'Need help? Tweet me @twostraws!' szövegű elemeket."""
+    if not isinstance(item, tuple) or item[0] != "p":
+        return False
+    text = str(item[1]).lower()
+    return "twostraws" in text or "need help" in text
+
 
 def _stable_id(url: str) -> str:
     return hashlib.sha1(url.encode()).hexdigest()[:8]
 
 
-def _should_fetch(href: str, day_base: str = "/100") -> bool:
-    """
-    Meghatározza, hogy egy href-et le kell-e tölteni aloldalként.
-
-    day_base: az aktuális kurzus URL-prefix-e, pl. "/100" vagy "/100/swiftui".
-    A nap-oldalak saját URL-jeit (_collect_sublinks hívja) le kell tölteni;
-    a főoldalak és a kurzus-index URL-eket ki kell zárni.
-
-    Kizárási logika /100/* URL-ekre:
-      - /100/        → _SKIP_EXACT-ban van, kizárva
-      - /100/swiftui → _SKIP_EXACT-ban van, kizárva
-      - /100/N       → Swift nap-oldal; csak engedélyezett, ha day_base == "/100"
-      - /100/swiftui/N → SwiftUI nap-oldal; csak engedélyezett, ha day_base == "/100/swiftui"
-
-    A nap-oldalakon belüli aloldalak (pl. /quick-start/beginners/*, /sixty/*) nem
-    esnek /100/ alá, ezért ezeket a prefix-szabály nem érinti — azok a _SKIP_PREFIXES
-    alapján szűrődnek, vagy átmennek.
-    """
+def _should_fetch(href: str) -> bool:
     if not href.startswith("/"):
         return False
     if href.endswith(".pdf"):
@@ -71,24 +67,8 @@ def _should_fetch(href: str, day_base: str = "/100") -> bool:
     for skip in _SKIP_PREFIXES:
         if href.startswith(skip):
             return False
-
-    # /100/* URL-ek: csak az aktuális kurzus nap-oldalait engedjük.
-    #
-    # A nap-oldalak formátuma:
-    #   Swift:   /100/N          → day_base="/100",        after="N"         (nincs / az afterben)
-    #   SwiftUI: /100/swiftui/N  → day_base="/100/swiftui", after="N"        (nincs / az afterben)
-    #
-    # Fontos él-eset: day_base="/100" esetén a /100/swiftui/1 szintén
-    # startswith("/100/") → igaz, de "after" = "swiftui/1" tartalmaz /-t,
-    # ami azt jelzi, hogy egy másik variáns alá tartozik → ki kell zárni.
     if href.startswith("/100/"):
-        if not href.startswith(f"{day_base}/"):
-            return False
-        after = href[len(day_base) + 1:]   # a day_base/ utáni rész
-        # Ha az 'after' további /-t tartalmaz, mélyebb variáns → kizárjuk.
-        # Ez kizárja pl. /100/swiftui/1-et, ha day_base="/100".
-        return "/" not in after
-
+        return False
     return True
 
 
@@ -121,11 +101,9 @@ def _li_label(li: Tag) -> str:
     return " ".join(" ".join(parts).split())
 
 
-def get_links_hundred(html: str, day_base: str = "/100") -> list:
+def get_links_hundred(html: str) -> list:
     """
-    A /100 vagy /100/swiftui főoldal TOC parser-e.
-
-    day_base: "/100" a Swift variánshoz, "/100/swiftui" a SwiftUI variánshoz.
+    A /100 főoldal TOC parser.
 
     Kimenet:
       - Első h2 ("How it works") → section_title (page boundary)
@@ -135,7 +113,7 @@ def get_links_hundred(html: str, day_base: str = "/100") -> list:
       - Glossary link (a bevezetőben) → glossary_link (a bevezetés UTÁN injektálva)
       - "The Course" h2 után: h3-ak → chapter (TOC grouping)
       - "The Course" h2 után: p-k → p passthrough
-      - "The Course" h2 után: ul/li nap-linkek → link (teljes li szöveg)
+      - "The Course" h2 után: ul/li /100/N linkek → link (teljes li szöveg)
         - nested ul Optional: elemek → subsection_title
         - Test: elemek → kihagyva
     """
@@ -177,6 +155,7 @@ def get_links_hundred(html: str, day_base: str = "/100") -> list:
                 in_course_section = True
                 continue
             if not first_heading_done:
+                log(f"Injecting section_title for intro: {txt} (anchor: section-intro) (crawler)")  # debug
                 intro_items.append(("section_title", txt, {"id": "section-intro"}))
                 first_heading_done = True
             else:
@@ -205,7 +184,7 @@ def get_links_hundred(html: str, day_base: str = "/100") -> list:
                         if "/glossary" in href:
                             full = urljoin(BASE, href)
                             if glossary_item is None:
-                                glossary_item = ("link", "Glossary", full)
+                                glossary_item = ("glossary_fetch", "Glossary", full)
                             continue
 
                 list_items = []
@@ -242,8 +221,7 @@ def get_links_hundred(html: str, day_base: str = "/100") -> list:
                 if not a:
                     continue
                 href = str(a.get("href", ""))
-                # Az aktuális kurzus nap-linkjeit fogadjuk el
-                if not href.startswith(f"{day_base}/"):
+                if not href.startswith("/100/"):
                     continue
                 full = urljoin(BASE, href)
                 if full in seen:
@@ -271,6 +249,7 @@ def get_links_hundred(html: str, day_base: str = "/100") -> list:
                             continue
 
                         if sub_text.strip().lower().startswith("optional"):
+                            log(f"Adding Optional sub-subsection: {sub_label} (anchor: sec-{_stable_id(sub_full)}) (crawler) - his should be sub_subsection_title")  # debug
                             course_items.append((
                                 "subsection_title",
                                 f"(Optional) {sub_label}",
@@ -279,6 +258,7 @@ def get_links_hundred(html: str, day_base: str = "/100") -> list:
                             continue
 
                         # Egyéb al-elem (nem Optional, nem Test) → subsection_title prefix nélkül
+                        log(f"Adding subsection: {sub_label} (anchor: sec-{_stable_id(sub_full)}) (crawler)")
                         course_items.append((
                             "subsection_title",
                             sub_label,
@@ -359,10 +339,10 @@ def _extract_glossary(html: str) -> list:
 
 def _extract_day_intro(soup: BeautifulSoup) -> list:
     """
-    Egy nap-oldal tartalmát szedi ki (/100/N vagy /100/swiftui/N).
+    Egy /100/N nap oldal tartalmát szedi ki.
 
     Első h1/h2 → section_title (page boundary)
-    Többi h2/h3 → heading; kivéve _SKIP_DAY_H2 szövegek (SwiftUI-specifikus zajok)
+    Többi h2/h3 → heading
     p → paragraph
     ul/ol → list (top-level li szövege, al-lista kihagyva)
     Sponsor, chatparent, ebtc → kihagyva
@@ -399,9 +379,6 @@ def _extract_day_intro(soup: BeautifulSoup) -> list:
             txt = el.get_text(strip=True)
             if not txt:
                 continue
-            # SwiftUI nap-oldalakon megjelenő zaj-h2-ek kiszűrése
-            if txt.lower() in _SKIP_DAY_H2:
-                continue
             if not first_heading_done:
                 items.append(("section_title", txt, {
                     "id": f"section-day-{hash(txt) & 0xFFFFFF}",
@@ -424,36 +401,62 @@ def _extract_day_intro(soup: BeautifulSoup) -> list:
             continue
 
         if el.name in ("ul", "ol"):
-            list_items = []
             for li in el.find_all("li", recursive=False):
-                top_text = ""
-                for child in li.children:
-                    if isinstance(child, Tag):
-                        if child.name == "ul":
-                            continue
-                        top_text += child.get_text(" ", strip=True)
-                    else:
-                        top_text += str(child)
-                top_text = top_text.strip()
-                if top_text:
-                    list_items.append(top_text)
-            if list_items:
-                items.append(("list", {
-                    "ordered": el.name == "ol",
-                    "items": list_items,
-                }))
+                a = li.find("a")
+                if not a:
+                    continue
+                href = str(a.get("href", ""))
+                if not _is_valid_subsection_href(href):
+                    continue
+                sub_full = urljoin(BASE, href)
+                sub_label = a.get_text(strip=True)
+                sub_id = f"sec-{_stable_id(sub_full)}"
+
+                items.append((
+                    "subsection_title",
+                    sub_label,
+                    {"id": sub_id, "url": sub_full},
+                ))
+
+                nested_ul = li.find("ul")
+                if not nested_ul:
+                    continue
+
+                for sub_li in nested_ul.find_all("li", recursive=False):
+                    sub_text = sub_li.get_text(" ", strip=True)
+                    sub_sub_a = sub_li.find("a")
+                    if not sub_sub_a:
+                        continue
+                    sub_sub_href = str(sub_sub_a.get("href", ""))
+                    sub_sub_full = urljoin(BASE, sub_sub_href)
+                    sub_sub_label = sub_sub_a.get_text(strip=True)
+
+                    if sub_text.strip().lower().startswith("test"):
+                        continue
+
+                    if sub_text.strip().lower().startswith("optional"):
+                        items.append((
+                            "sub_subsection_title",
+                            f"(Optional) {sub_sub_label}",
+                            {"id": f"sec-{_stable_id(sub_sub_full)}", "url": sub_sub_full},
+                        ))
+                        continue
+
+                    items.append((
+                        "sub_subsection_title",
+                        sub_sub_label,
+                        {"id": f"sec-{_stable_id(sub_sub_full)}", "url": sub_sub_full},
+                    ))
+
             continue
 
     return items
 
 
-def _collect_sublinks(soup: BeautifulSoup, day_base: str = "/100") -> list:
+def _collect_sublinks(soup: BeautifulSoup) -> list:
     """
-    A nap-oldalról összegyűjti a letöltendő aloldal URL-eket.
+    A nap oldaláról összegyűjti a letöltendő aloldal URL-eket.
     A _should_fetch() szabályai szerint szűr.
-
-    day_base: továbbítódik a _should_fetch()-nek, hogy a kereszt-kurzus
-    linkeket ki lehessen zárni.
     """
     container = soup.select_one("div.col-lg-10")
     if not container:
@@ -464,7 +467,7 @@ def _collect_sublinks(soup: BeautifulSoup, day_base: str = "/100") -> list:
 
     for a in container.find_all("a", href=True):
         href = str(a.get("href", ""))
-        if _should_fetch(href, day_base):
+        if _should_fetch(href):
             full = urljoin(BASE, href)
             if full not in seen:
                 seen.add(full)
@@ -476,8 +479,10 @@ def _collect_sublinks(soup: BeautifulSoup, day_base: str = "/100") -> list:
 def _extract_subpage(html: str, url: str, cache) -> list:
     """
     Egy aloldal tartalmát szedi ki.
-    - A h1.hws-main-title-ből section_title-t injektál (TOC entry)
+    - subpage_header node-ot injektál a H1-ből: page break + cím, de NEM TOC entry
+    - Az anchor az _extract_day_intro() subsection_title node-ján van (azonos ID)
     - Az extract() maga kihagyja az h1-et (first_heading_skipped logika)
+    - "Need help? Tweet me @twostraws!" szűrve
     """
     items = []
 
@@ -485,21 +490,20 @@ def _extract_subpage(html: str, url: str, cache) -> list:
     title_el = sub_soup.select_one("h1.hws-main-title")
     if title_el:
         title_txt = title_el.get_text(strip=True)
-        items.append(("section_title", title_txt, {
-            "id": f"sec-{_stable_id(url)}",
-        }))
+        items.append(("subpage_header", title_txt, {}))
 
-    items.extend(extract(html, cache))
+    raw = extract(html, cache)
+    for item in raw:
+        if _is_needhelp_block(item):
+            continue
+        items.append(item)
+
     return items
 
 
-def extract_hundred_day(html: str, url: str, cache, day_base: str = "/100") -> list:
+def extract_hundred_day(html: str, url: str, cache) -> list:
     """
-    Egy nap-oldal teljes tartalmát adja vissza (/100/N vagy /100/swiftui/N).
-
-    day_base: "/100" a Swift variánshoz, "/100/swiftui" a SwiftUI variánshoz.
-    Továbbítódik a _collect_sublinks()-nek és azon keresztül a _should_fetch()-nek.
-
+    Egy /100/N nap oldal teljes tartalmát adja vissza.
     1. Nap oldal saját tartalma (bevezető + section_title)
     2. Aloldalak letöltése és extract()-olása, section_title injektálással
        - /glossary → _extract_glossary()
@@ -510,7 +514,7 @@ def extract_hundred_day(html: str, url: str, cache, day_base: str = "/100") -> l
 
     items.extend(_extract_day_intro(soup))
 
-    sub_urls = _collect_sublinks(soup, day_base)
+    sub_urls = _collect_sublinks(soup)
     log(f"sublinks ({len(sub_urls)}): {sub_urls}")
 
     for sub_url in sub_urls:

@@ -80,6 +80,17 @@ def normalize(extracted_items: List[Any]) -> List[Node]:
                 ))
                 continue
 
+            # subpage_header — page break + cím, NEM TOC entry
+            if item[0] == "subpage_header":
+                _, title, meta = item
+                ast_nodes.append(_base_node(
+                    "subpage_header",
+                    content=title,
+                    layout="block",
+                    meta=meta if isinstance(meta, dict) else {},
+                ))
+                continue
+
             # subsection_title
             if item[0] == "subsection_title":
                 _, title, meta = item

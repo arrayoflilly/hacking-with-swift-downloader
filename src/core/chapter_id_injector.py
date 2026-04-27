@@ -1,11 +1,9 @@
 # chapter_id_injector.py
 
 from typing import List, Dict, Any, Tuple
-from src.core.logger import log
 import hashlib
 
 Node = Dict[str, Any]
-
 
 
 def _stable_id(text: str, prefix: str) -> str:
@@ -56,29 +54,24 @@ def inject_chapter_ids(ast: List[Node]) -> Tuple[List[Node], List[tuple]]:
             if "glossary" in content:
                 node["meta"]["special"] = "glossary"
 
-            log(f"Generated ID for section_title: {node['meta']['id']} (content: {content})")
             updated.append(node)
             toc.append(("section", node.get("content"), node["meta"]["id"]))
             continue
 
-        # subsection_title → TOC entry (1 cm behúzás), stabil ID
+        # subsection_title → stabil ID, passthrough (TOC a builder._build_toc()-ban kezeli)
         if ntype == "subsection_title":
             if not node["meta"].get("id"):
                 content = node.get("content") or ""
                 node["meta"]["id"] = _stable_id(content, "subsec")
-                log(f"Generated ID for subsection_title: {node['meta']['id']} (content: {content})")  # debug
             updated.append(node)
-            toc.append(("subsection", node.get("content"), node["meta"]["id"]))
             continue
 
-        # sub_subsection_title → TOC entry (2 cm behúzás), stabil ID
+        # sub_subsection_title → stabil ID, passthrough (TOC a builder._build_toc()-ban kezeli)
         if ntype == "sub_subsection_title":
             if not node["meta"].get("id"):
                 content = node.get("content") or ""
                 node["meta"]["id"] = _stable_id(content, "subsubsec")
-                log(f"Generated ID for sub_subsection_title: {node['meta']['id']} (content: {content})")  # debug
             updated.append(node)
-            toc.append(("sub_subsection", node.get("content"), node["meta"]["id"]))
             continue
 
         # heading → stabil ID, NEM kerül TOC-ba
@@ -105,18 +98,4 @@ def inject_chapter_ids(ast: List[Node]) -> Tuple[List[Node], List[tuple]]:
         # default passthrough
         updated.append(node)
 
-    # glossary TOC entry-k a végére kerülnek
-    regular_toc = [t for t in toc if not _is_glossary_toc(t)]
-    glossary_toc = [t for t in toc if _is_glossary_toc(t)]
-    
-    log(f"Regular TOC entries: {len(regular_toc)}, Glossary TOC entries: {len(glossary_toc)}")  # debug
-
-    return updated, regular_toc + glossary_toc
-
-
-def _is_glossary_toc(toc_entry: tuple) -> bool:
-    # toc entry: ("section", title, id) — glossary ha "glossary" a title-ben
-    if len(toc_entry) >= 2:
-        title = (toc_entry[1] or "").lower()
-        return "glossary" in title
-    return False
+    return updated, toc

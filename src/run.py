@@ -19,7 +19,7 @@ cache = CacheManager(str(CACHE_DIR))
 
 # Ezek a tuple típusok közvetlenül kerülnek all_sections-be,
 # nem igényelnek URL letöltést.
-PASSTHROUGH_TYPES = {"chapter", "p", "list", "section_title", "subsection_title", "sub_subsection_title", "subpage_header", "heading", "quote", "code"}
+PASSTHROUGH_TYPES = {"chapter", "p", "list", "section_title", "subsection_title", "sub_subsection_title", "heading", "quote", "code"}
 
 
 def get_crawler(book_id: int):
@@ -84,16 +84,6 @@ def run():
         if inject_section_title:
             anchor = f"section-{i}"
             all_sections.append(("section_title", link_text.strip(), {"id": anchor}))
-        else:
-            # A crawler adja ki a section_title-t az aloldal H1-jéből,
-            # de a TOC-ban a főoldali lista szövegét kell mutatni.
-            # Az első section_title tuple toc_title mezőjét patcheljük.
-            for j, c in enumerate(content):
-                if isinstance(c, tuple) and len(c) >= 3 and c[0] == "section_title":
-                    meta = dict(c[2]) if isinstance(c[2], dict) else {}
-                    meta["toc_title"] = link_text.strip()
-                    content[j] = (c[0], c[1], meta)
-                    break
 
         all_sections.extend(content)
         i += 1
