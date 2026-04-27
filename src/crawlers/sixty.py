@@ -1,6 +1,4 @@
-# src/crawlers/sixty.py
-
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 from src.pipeline.extract import extract
@@ -9,42 +7,52 @@ BASE = "https://www.hackingwithswift.com"
 
 
 def get_links_sixty(html: str) -> list:
-    """
-    A /sixty főoldal TOC parser.
-
-    h3 → chapter (TOC grouping, nem link)
-    ul/li/a /sixty/... → link (section_title lesz belőle run.py-ban)
-    """
     soup = BeautifulSoup(html, "html.parser")
-    container = soup.select_one("div.col-lg-10")
+
+    # Az oldalon két div.col-lg-10 van.
+    # Az első a "Before you start" FAQ szekciót tartalmazza — nincs benne h3 közvetlen gyerekként.
+    # A második tartalmazza a h3+ul párokat (chapter + linkek).
+    # Azt a containert keressük, amelyiknek van közvetlen h3 gyereke.
+    all_containers = soup.select("div.col-lg-10")
+    container = next(
+        (c for c in all_containers if c.find("h3", recursive=False)),
+        None,
+    )
     if not container:
         return []
 
     seen = set()
     items = []
 
+    # A közvetlen gyerekeket sorban járjuk be, hogy a chapter→link sorrend megmaradjon.
+    # h3  → ("chapter", szöveg)
+    # ul  → az összes li > a href, amelyik /sixty/-et tartalmaz → ("link", szöveg, url)
     for el in container.children:
-        if not isinstance(el, Tag):
+        if not hasattr(el, "name") or not el.name: # type: ignore
             continue
 
-        if el.name == "h3":
+        if el.name == "h3": # type: ignore
             txt = el.get_text(strip=True)
             if txt:
                 items.append(("chapter", txt))
             continue
 
-        if el.name in ("ul", "ol"):
-            for li in el.find_all("li", recursive=False):
-                a = li.find("a")
+        if el.name == "ul": # type: ignore
+            for li in el.find_all("li", recursive=False): # type: ignore
+                a = li.find("a", href=True)
                 if not a:
                     continue
+
                 href = str(a.get("href", ""))
-                if "/sixty/" in href:
-                    full = urljoin(BASE, href)
-                    if full not in seen:
-                        seen.add(full)
-                        items.append(("link", a.get_text(strip=True), full))
-            continue
+                if "/sixty/" not in href:
+                    continue
+
+                full = urljoin(BASE, href)
+                if full in seen:
+                    continue
+
+                seen.add(full)
+                items.append(("link", a.get_text(strip=True), full))
 
     return items
 

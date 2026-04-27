@@ -10,7 +10,6 @@ from src.rendering.renderer import html_to_pdf
 from src.core.cache_manager import CacheManager
 from src.core.logger import log_reset
 from src.utils.utils import reset_outputs_and_cache
-from src.crawlers.ios_swiftui import get_links_ios_swiftui, extract_ios_swiftui
 from src.crawlers.sixty import get_links_sixty, extract_sixty
 from src.crawlers.hundred import get_links_hundred, extract_hundred_day, _extract_glossary
 from src.core.logger import log
@@ -29,11 +28,10 @@ def get_crawler(book_id: int):
     inject_section_title: True  → run.py injektálja a section_title-t fetch után
                           False → a crawler maga adja ki a section_title-t
     """
-    if book_id == 0:   # Hacking with iOS: SwiftUI Edition
-        return get_links_ios_swiftui, extract_ios_swiftui, True
+    
     if book_id == 2:   # Swift in Sixty Seconds
         return get_links_sixty, extract_sixty, True
-    if book_id == 7:   # 100 Days of Swift
+    if book_id == 7 or book_id == 8:   # 100 Days of Swift
         return get_links_hundred, extract_hundred_day, False
     # book_id == 1: Swift for Complete Beginners
     return get_links, lambda html, url, cache: extract(html, cache), True

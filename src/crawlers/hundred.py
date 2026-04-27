@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 from src.pipeline.extract import extract, _is_ebtc_footer_block
 from src.pipeline.fetcher import fetch
 from src.core.logger import log
+from src.config.config import CONTENT_HINTS, CTA_PHRASES
 
 BASE = "https://www.hackingwithswift.com"
 GLOSSARY_URL = f"{BASE}/glossary"
@@ -50,8 +51,55 @@ def _is_needhelp_block(item: tuple) -> bool:
     if not isinstance(item, tuple) or item[0] != "p":
         return False
     text = str(item[1]).lower()
-    return "twostraws" in text or "need help" in text
+    return "twostraws" in text and "need help" in text
 
+def _item_text(item: tuple) -> str:
+    if not isinstance(item, tuple) or not item:
+        return ""
+
+    def clean(html: str) -> str:
+        return BeautifulSoup(html, "html.parser").get_text(" ", strip=True).lower()
+
+    t = item[0]
+
+    if t == "p":
+        return clean(item[1])
+    if t == "heading":
+        return str(item[2]).lower()
+    if t == "subpage_header":
+        return str(item[1]).lower()
+    if t == "link":
+        return f"{item[1]} {item[2]}".lower()
+
+    return " ".join(str(x) for x in item[1:]).lower()
+
+def _is_cta_start(item: tuple) -> bool:
+    text = _item_text(item)
+    return (
+        "how can this day be improved" in text or
+        "share your progress" in text
+    )
+
+
+def _is_cta_end(item: tuple) -> bool:
+    text = _item_text(item)
+    return "need help?" in text
+
+def _is_social_footer_block(item: tuple) -> bool:
+    text = _item_text(item)
+
+    if not text:
+        return False
+
+    # ha content jel van → NEM szűrjük
+    if any(h in text for h in CONTENT_HINTS):
+        return False
+
+    # CTA csak ha explicit phrase
+    if any(p in text for p in CTA_PHRASES):
+        return True
+
+    return False
 
 def _stable_id(url: str) -> str:
     return hashlib.sha1(url.encode()).hexdigest()[:8]
@@ -155,7 +203,7 @@ def get_links_hundred(html: str) -> list:
                 in_course_section = True
                 continue
             if not first_heading_done:
-                log(f"Injecting section_title for intro: {txt} (anchor: section-intro) (crawler)")  # debug
+                # log(f"Injecting section_title for intro: {txt} (anchor: section-intro) (crawler)")  # debug
                 intro_items.append(("section_title", txt, {"id": "section-intro"}))
                 first_heading_done = True
             else:
@@ -249,7 +297,7 @@ def get_links_hundred(html: str) -> list:
                             continue
 
                         if sub_text.strip().lower().startswith("optional"):
-                            log(f"Adding Optional sub-subsection: {sub_label} (anchor: sec-{_stable_id(sub_full)}) (crawler) - his should be sub_subsection_title")  # debug
+                            # log(f"Adding Optional sub-subsection: {sub_label} (anchor: sec-{_stable_id(sub_full)}) (crawler) - his should be sub_subsection_title")  # debug
                             course_items.append((
                                 "subsection_title",
                                 f"(Optional) {sub_label}",
@@ -258,7 +306,7 @@ def get_links_hundred(html: str) -> list:
                             continue
 
                         # Egyéb al-elem (nem Optional, nem Test) → subsection_title prefix nélkül
-                        log(f"Adding subsection: {sub_label} (anchor: sec-{_stable_id(sub_full)}) (crawler)")
+                        # log(f"Adding subsection: {sub_label} (anchor: sec-{_stable_id(sub_full)}) (crawler)")
                         course_items.append((
                             "subsection_title",
                             sub_label,
@@ -494,7 +542,8 @@ def _extract_subpage(html: str, url: str, cache) -> list:
 
     raw = extract(html, cache)
     for item in raw:
-        if _is_needhelp_block(item):
+        if _is_needhelp_block(item) or _is_social_footer_block(item):
+            log(f"FILTERED: {item}")
             continue
         items.append(item)
 
@@ -515,7 +564,7 @@ def extract_hundred_day(html: str, url: str, cache) -> list:
     items.extend(_extract_day_intro(soup))
 
     sub_urls = _collect_sublinks(soup)
-    log(f"sublinks ({len(sub_urls)}): {sub_urls}")
+    # log(f"sublinks ({len(sub_urls)}): {sub_urls}")
 
     for sub_url in sub_urls:
         sub_html = fetch(sub_url)

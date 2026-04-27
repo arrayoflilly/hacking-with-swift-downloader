@@ -18,7 +18,7 @@ BOOKS = [
         "id": 0,
         "title": "Hacking with iOS: SwiftUI Edition",
         "author": "Paul Hudson and the Hacking with Swift team",
-        "url": "/quick-start/ios-swiftui",
+        "url": "/books/ios-swiftui",
         "cover": PROJECT_ROOT / "assets" / "img" / "ios.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "hacking-with-ios-swiftui.pdf",
@@ -102,11 +102,11 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "swiftui 2.png",
         "date_str": "Updated for Xcode 16.4",
         "pdf_name": "100-days-of-swiftui.pdf",
-        "has_working_crawler_and_extractor": False,
+        "has_working_crawler_and_extractor": True,
     },
 ]
 
-BOOK_ID = 8
+BOOK_ID = 0
 TITLE = BOOKS[BOOK_ID]["title"]
 AUTHOR = BOOKS[BOOK_ID]["author"]
 START = BOOKS[BOOK_ID]["url"]
@@ -125,3 +125,21 @@ CACHE_DIR = PROJECT_ROOT / "cache"
 CACHE_PATH = CACHE_DIR / f"{START.strip('/').replace('/', '_')}.json"
 CACHE_TTL = 60 * 60 * 24  
 
+CTA_PHRASES = (
+    "how can this day be improved",
+    "share your progress",
+    "copy and paste the text below",
+    "i just finished day",
+)
+
+CONTENT_HINTS = (
+    "code",
+    "<code>",
+    "github.com",
+    "xcode",
+    "swift",
+    "package",
+    "struct",
+    "var ",
+    "let ",
+)
