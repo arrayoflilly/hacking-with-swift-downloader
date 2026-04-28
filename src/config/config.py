@@ -112,11 +112,21 @@ BOOKS = [
         "cover": PROJECT_ROOT / "assets" / "img" / "swift 2.png",
         "date_str": "2024",
         "pdf_name": "interview-questions.pdf",
+        "has_working_crawler_and_extractor": True,
+    },
+    {
+        "id": 10,
+        "title": "Articles from Hacking with Swift News",
+        "author": "Paul Hudson and the Hacking with Swift team",
+        "url": "/articles",
+        "cover": PROJECT_ROOT / "assets" / "img" / "swift 2.png",
+        "date_str": "2026",
+        "pdf_name": "articles-from-hacking-with-swift-news.pdf",
         "has_working_crawler_and_extractor": False,
     },
 ]
 
-BOOK_ID = 9
+BOOK_ID = 10
 TITLE = BOOKS[BOOK_ID]["title"]
 AUTHOR = BOOKS[BOOK_ID]["author"]
 START = BOOKS[BOOK_ID]["url"]

@@ -8,7 +8,7 @@ from src.config.config import TITLE
 # -------------------------
 
 def _render_pdf(page, html_str: str, out_path: str):
-    page.set_content(html_str, wait_until="domcontentloaded", timeout=120000)
+    page.set_content(html_str, wait_until="domcontentloaded", timeout=1200000)
     page.pdf(
         path=out_path,
         format="A4",
@@ -50,10 +50,11 @@ def html_to_pdf(html_str: str, out_path: str):
             browser.close()
             return
         except Error:
+            print("Initial PDF rendering attempt failed, retrying with increased timeouts...")
             try:
                 browser.close() # type: ignore
             except Exception:
-                pass
+                print("Failed to close browser.")
 
         # Fallback attempt: start a fresh browser context and try again.
         browser = p.chromium.launch()

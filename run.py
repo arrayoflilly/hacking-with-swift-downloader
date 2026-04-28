@@ -13,6 +13,7 @@ from src.utils.utils import reset_outputs_and_cache
 from src.crawlers.sixty import get_links_sixty, extract_sixty
 from src.crawlers.hundred import get_links_hundred, extract_hundred_day, _extract_glossary
 from src.crawlers.interview import get_links_interview, extract_interview
+from src.crawlers.news import fetch_all_news_links, extract_news
 from src.core.logger import log
 
 cache = CacheManager(str(CACHE_DIR))
@@ -37,6 +38,8 @@ def get_crawler(book_id: int):
     if book_id == 9:   # iOS Interview Questions
         return get_links_interview, extract_interview, True
     # book_id == 1: Swift for Complete Beginners
+    if book_id == 10:
+        return fetch_all_news_links, extract_news, True
     return get_links, lambda html, url, cache: extract(html, cache), True
 
 
@@ -118,6 +121,12 @@ def run():
     print(f"[summary] images={image_count} youtube={youtube_count} vimeo={vimeo_count} mp4={mp4_count}")
 
     html_doc = build_html(nodes, TITLE, DATE_STR, AUTHOR)
+    try:
+        with open("output.html", "w", encoding="utf-8") as f:
+            f.write(html_doc)
+    except Exception as e:
+        log(f"Error writing HTML to file: {e}")
+        
     html_to_pdf(html_doc, str(PDF_PATH))
 
 
