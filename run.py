@@ -49,7 +49,7 @@ def get_crawler(book_id: int):
 
 def run():
     # Debug reset only once, otherwise previously downloaded assets disappear.
-    reset_outputs_and_cache()
+    # reset_outputs_and_cache()
     log_reset()
 
     get_links_fn, extract_fn, inject_section_title = get_crawler(BOOK_ID)
@@ -122,7 +122,7 @@ def run():
 
     html_doc = build_html(nodes, TITLE, DATE_STR, AUTHOR)
     try:
-        with open("output.html", "w", encoding="utf-8") as f:
+        with open("output/tmp/output.html", "w", encoding="utf-8") as f:
             f.write(html_doc)
     except Exception as e:
         log(f"Error writing HTML to file: {e}")
