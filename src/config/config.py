@@ -104,9 +104,19 @@ BOOKS = [
         "pdf_name": "100-days-of-swiftui.pdf",
         "has_working_crawler_and_extractor": True,
     },
+    {
+        "id": 9,
+        "title": "Interview Questions",
+        "author": "Paul Hudson and the Hacking with Swift team",
+        "url": "/interview-questions",
+        "cover": PROJECT_ROOT / "assets" / "img" / "swift 2.png",
+        "date_str": "2024",
+        "pdf_name": "interview-questions.pdf",
+        "has_working_crawler_and_extractor": False,
+    },
 ]
 
-BOOK_ID = 0
+BOOK_ID = 9
 TITLE = BOOKS[BOOK_ID]["title"]
 AUTHOR = BOOKS[BOOK_ID]["author"]
 START = BOOKS[BOOK_ID]["url"]

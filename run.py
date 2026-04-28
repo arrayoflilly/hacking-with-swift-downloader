@@ -12,6 +12,7 @@ from src.core.logger import log_reset
 from src.utils.utils import reset_outputs_and_cache
 from src.crawlers.sixty import get_links_sixty, extract_sixty
 from src.crawlers.hundred import get_links_hundred, extract_hundred_day, _extract_glossary
+from src.crawlers.interview import get_links_interview, extract_interview
 from src.core.logger import log
 
 cache = CacheManager(str(CACHE_DIR))
@@ -33,6 +34,8 @@ def get_crawler(book_id: int):
         return get_links_sixty, extract_sixty, True
     if book_id == 7 or book_id == 8:   # 100 Days of Swift
         return get_links_hundred, extract_hundred_day, False
+    if book_id == 9:   # iOS Interview Questions
+        return get_links_interview, extract_interview, True
     # book_id == 1: Swift for Complete Beginners
     return get_links, lambda html, url, cache: extract(html, cache), True
 
@@ -43,7 +46,7 @@ def get_crawler(book_id: int):
 
 def run():
     # Debug reset only once, otherwise previously downloaded assets disappear.
-    # reset_outputs_and_cache()
+    reset_outputs_and_cache()
     log_reset()
 
     get_links_fn, extract_fn, inject_section_title = get_crawler(BOOK_ID)
